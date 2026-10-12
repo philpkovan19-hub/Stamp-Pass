@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>StampPass — Souvenir Passport on BOT Chain</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=EB+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.2/ethers.umd.min.js"></script>
+<style>
+  :root {
+    --midnight-0: #060917;
+    --midnight-1: #0d1226;
+    --midnight-2: #131a37;
+    --midnight-3: #1c2450;
+    --gold: #d4af37;
+    --gold-2: #f0d67a;
+    --gold-dim: #8a7028;
+    --parchment: #f4e9c9;
+    --parchment-dim: #dcc999;
+    --parchment-shadow: #a08d5a;
+    --ink: #2c1e07;
+    --ink-dim: #5a4419;
+    --text: #e8ecf7;
+    --text-dim: #a3aac7;
+    --tier-common: #9aa1b6;
+    --tier-uncommon: #46a866;
+    --tier-rare: #4a7dd6;
+    --tier-epic: #9b5cd8;
+    --tier-legendary: #e29234;
+    --tier-mythic: #d84343;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    background: var(--midnight-1);
+    color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif;
+    margin: 0; padding: 0;
+    min-height: 100vh;
+  }
+  body {
+    background:
+      radial-gradient(2px 2px at 12% 18%, rgba(255,255,255,0.55), transparent 60%),
+      radial-gradient(1px 1px at 22% 62%, rgba(255,255,255,0.45), transparent 60%),
+      radial-gradient(1.5px 1.5px at 42% 12%, rgba(255,255,255,0.35), transparent 60%),
+      radial-gradient(1px 1px at 58% 74%, rgba(255,255,255,0.4), transparent 60%),
+      radial-gradient(2px 2px at 77% 28%, rgba(255,255,255,0.5), transparent 60%),
+      radial-gradient(1px 1px at 88% 58%, rgba(255,255,255,0.35), transparent 60%),
+      radial-gradient(1.5px 1.5px at 68% 88%, rgba(255,255,255,0.3), transparent 60%),
+      radial-gradient(1px 1px at 33% 92%, rgba(255,255,255,0.4), transparent 60%),
+      radial-gradient(circle at 20% 10%, #1a2350 0%, transparent 60%),
+      radial-gradient(circle at 85% 80%, #2a1a45 0%, transparent 55%),
+      linear-gradient(180deg, #0a0f22 0%, #0d1226 60%, #060917 100%);
+    background-attachment: fixed;
+  }
+
+  /* Topbar */
+  .topbar {
+    position: sticky; top: 0; z-index: 40;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 28px;
+    background: linear-gradient(180deg, rgba(6,9,23,0.95), rgba(6,9,23,0.75));
+    border-bottom: 1px solid rgba(212,175,55,0.18);
+    backdrop-filter: blur(6px);
+  }
+  .wordmark {
+    font-family: 'Cinzel', serif;
+    font-weight: 900;
+    font-size: 24px;
+    letter-spacing: 0.22em;
+    color: var(--gold);
+    text-shadow: 0 0 12px rgba(212,175,55,0.35), 0 0 2px rgba(212,175,55,0.6);
+  }
+  .btn-connect {
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    font-size: 13px;
+    padding: 10px 22px;
+    color: #1a1204;
+    background: linear-gradient(180deg, #f0d67a 0%, #d4af37 45%, #a37f1c 100%);
+    border: 1px solid #7a5f18;
+    border-radius: 4px;
+    cursor: pointer;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.6),
+      inset 0 -2px 3px rgba(0,0,0,0.25),
+      0 2px 10px rgba(212,175,55,0.25);
+    transition: transform 0.1s;
+  }
+  .btn-connect:hover { transform: translateY(-1px); filter: brightness(1.08); }
+  .btn-connect:active { transform: translateY(0); }
+  .wallet-chip {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    padding: 8px 14px;
+    background: rgba(212,175,55,0.08);
+    border: 1px solid rgba(212,175,55,0.35);
+    color: var(--gold-2);
+    border-radius: 4px;
+  }
+
+  /* Hero */
+  .hero {
+    text-align: center;
+    padding: 68px 24px 36px;
+  }
+  .hero h1 {
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    font-size: 42px;
+    margin: 0 0 14px;
+    letter-spacing: 0.06em;
+    color: var(--parchment);
+    text-shadow: 0 2px 20px rgba(0,0,0,0.6);
+  }
+  .hero .sub {
+    font-family: 'EB Garamond', serif;
+    font-style: italic;
+    font-size: 20px;
+    color: var(--text-dim);
+    margin: 0;
+  }
+
+  /* Stats shields */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    max-width: 1100px;
+    margin: 30px auto 20px;
+    padding: 0 24px;
+  }
+  .shield {
+    position: relative;
+    aspect-ratio: 1 / 1.15;
+    max-width: 220px;
+    margin: 0 auto;
+    width: 100%;
+  }
+  .shield svg {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    filter: drop-shadow(0 4px 12px rgba(0,0,0,0.5));
+  }
+  .shield-inner {
+    position: absolute;
+    inset: 18% 16% 20% 16%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 4px;
+  }
+  .shield-label {
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    color: var(--ink-dim);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+  }
+  .shield-value {
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    font-size: 26px;
+    color: var(--ink);
+    line-height: 1;
+  }
+  .shield-sub {
+    margin-top: 4px;
+    font-family: 'EB Garamond', serif;
+    font-style: italic;
+    font-size: 12px;
+    color: var(--ink-dim);
+  }
+  @media (max-width: 780px) {
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .hero h1 { font-size: 32px; }
+  }
+
+  /* Section headers */
+  .section {
+    max-width: 1200px;
+    margin: 40px auto;
+    padding: 0 24px;
+  }
+  .section-title {
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    color: var(--gold);
+    font-size: 18px;
+    margin: 0 0 4px;
+    text-transform: uppercase;
+  }
+  .section-rule {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(212,175,55,0.5), transparent);
+    margin: 8px 0 22px;
+  }
+
+  /* Segmented control */
+  .segmented {
+    display: inline-flex;
+    background: linear-gradient(180deg, #1a2148, #101632);
+    border: 1px solid rgba(212,175,55,0.3);
+    border-radius: 4px;
+    padding: 4px;
+    gap: 4px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+  }
+  .seg-btn {
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    padding: 8px 14px;
+    background: transparent;
+    color: var(--text-dim);
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    text-transform: uppercase;
+  }
+  .seg-btn.active {
+    background: linear-gradient(180deg, #d4af37, #8a7028);
+    color: #1a1204;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.4);
+  }
+  .filter-row {
+    display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+    margin-bottom: 22px;
+  }
+  select.ornate {
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    padding: 10px 14px;
+    background: #131a37;
+    border: 1px solid rgba(212,175,55,0.3);
+    color: var(--text);
+    border-radius: 4px;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+
+  /* Card grid */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 26px;
+  }
+
+  /* Trading card */
+  .tcg-card {
+    width: 240px;
+    height: 340px;
+    margin: 0 auto;
+    position: relative;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: transform 0.2s;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    color: var(--ink);
+    background:
+      linear-gradient(135deg, rgba(255,255,255,0.05), rgba(0,0,0,0.15)),
+      linear-gradient(180deg, var(--frame-a), var(--frame-b));
+    box-shadow:
+      0 0 0 2px var(--frame-outline),
+      0 0 0 3px rgba(0,0,0,0.35),
+      0 8px 22px rgba(0,0,0,0.55),
+      var(--frame-glow, none);
+  }
+  .tcg-card:hover { transform: translateY(-4px); }
+
+  /* Rarity variants */
+  .r-common {
+    --frame-a: #6d7488;
+    --frame-b: #444a5c;
+    --frame-outline: #2c3040;
+  }
+  .r-uncommon {
+    --frame-a: #4c9762;
+    --frame-b: #244a2f;
+    --frame-outline: #143020;
+  }
+  .r-rare {
+    --frame-a: #4a7dd6;
+    --frame-b: #234180;
+    --frame-outline: #10214a;
+  }
+  .r-epic {
+    --frame-a: #a870e0;
+    --frame-b: #4b2372;
+    --frame-outline: #2a0e46;
+  }
+  .r-legendary {
+    --frame-a: #f0b45c;
+    --frame-b: #a05c14;
+    --frame-outline: #4a2604;
+    --frame-glow: 0 0 22px 2px rgba(240,180,92,0.5);
+  }
+  .r-mythic {
+    --frame-a: #d84343;
+    --frame-b: #d4af37;
+    --frame-outline: #5a1010;
+    --frame-glow: 0 0 30px 3px rgba(216,67,67,0.55), 0 0 40px 8px rgba(212,175,55,0.25);
+  }
+
+  .card-inner {
+    flex: 1;
+    background: linear-gradient(180deg, #f7ecc9 0%, #ecdda4 100%);
+    border: 1px solid var(--parchment-shadow);
+    border-radius: 6px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
+  }
+  .card-title {
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.03em;
+    color: var(--ink);
+    text-align: center;
+    line-height: 1.15;
+    margin: 4px 0 6px;
+    min-height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px solid rgba(160,141,90,0.4);
+    padding-bottom: 6px;
+  }
+  .card-portrait {
+    height: 130px;
+    background: linear-gradient(180deg, #cfc08a, #a99a68);
+    border: 1px solid var(--parchment-shadow);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    margin-bottom: 8px;
+    position: relative;
+  }
+  .card-portrait img {
+    width: 100%; height: 100%; object-fit: cover;
+  }
+  .card-portrait svg { width: 68px; height: 68px; opacity: 0.85; }
+  .card-desc {
+    flex: 1;
+    font-family: 'EB Garamond', serif;
+    font-style: italic;
+    font-size: 12px;
+    color: var(--ink-dim);
+    line-height: 1.32;
+    overflow: hidden;
+    padding: 4px 2px;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+  }
+  .card-footer {
+    border-top: 1px solid rgba(160,141,90,0.4);
+    padding-top: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'Cinzel', serif;
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    color: var(--ink);
+  }
+  .card-rarity {
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--frame-outline);
+  }
+  .card-count {
+    font-family: 'EB Garamond', serif;
+    font-style: italic;
+    font-size: 11px;
+    letter-spacing: 0;
+    color: var(--ink-dim);
+  }
+
+  /* Corner ornaments */
+  .corner {
+    position: absolute;
+    width: 14px; height: 14px;
+    color: var(--gold);
+  }
+  .corner.tl { top: 2px; left: 2px; }
+  .corner.tr { top: 2px; right: 2px; transform: scaleX(-1); }
+  .corner.bl { bottom: 2px; left: 2px; transform: scaleY(-1); }
+  .corner.br { bottom: 2px; right: 2px; transform: scale(-1,-1); }
+
+  /* Foil shimmer overlay (epic+) */
+  .foil::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 12px;
+    pointer-events: none;
+    background: linear-gradient(115deg, transparent 40%, rgba(255,255,255,0.28) 50%, transparent 60%);
+    background-size: 250% 250%;
+    animation: shimmer 4s linear infinite;
+    mix-blend-mode: overlay;
+  }
+  @keyframes shimmer {
+    0% { background-position: -100% -100%; }
+    100% { background-position: 200% 200%; }
+  }
+
+  /* Owned mark */
+  .owned-badge {
+    position: absolute;
+    top: 12px; right: 12px;
+    background: linear-gradient(180deg, #f0d67a, #a37f1c);
+    color: #1a1204;
+    font-family: 'Cinzel', serif;
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    padding: 3px 7px;
+    border-radius: 2px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+    z-index: 3;
+  }
+
+  /* Modal */
+  .modal-veil {
+    position: fixed; inset: 0;
+    background: rgba(6,9,23,0.82);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 20px;
+  }
+  .modal-veil.open { display: flex; }
+  .modal-body {
+    background: linear-gradient(180deg, #14193a, #0a0f22);
+    border: 1px solid rgba(212,175,55,0.35);
+    border-radius: 8px;
+    padding: 28px;
+    max-width: 620px;
+    width: 100%;
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    gap: 24px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+  }
+  @media (max-width: 640px) {
+    .modal-body { grid-template-columns: 1fr; }
+  }
+  .modal-meta h3 {
+    font-family: 'Cinzel', serif;
+    font-size: 22px;
+    color: var(--parchment);
+    margin: 0 0 6px;
+    letter-spacing: 0.05em;
+  }
+  .modal-meta .slug {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+  }
+  .modal-meta .desc {
+    font-family: 'EB Garamond', serif;
+    font-style: italic;
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1.5;
+    margin-bottom: 20px;
+  }
+  .modal-facts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 14px;
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 18px;
+  }
+  .modal-facts b {
+    display: block;
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    color: var(--gold);
+    margin-bottom: 2px;
+  }
+  .modal-facts span { color: var(--text); font-family: 'Inter', sans-serif; }
+  .collect-btn {
+    display: block; width: 100%;
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    font-size: 13px;
+    padding: 14px 20px;
+    color: #1a1204;
+    background: linear-gradient(180deg, #f0d67a 0%, #d4af37 45%, #a37f1c 100%);
+    border: 1px solid #7a5f18;
+    border-radius: 4px;
+    cursor: pointer;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), inset 0 -2px 3px rgba(0,0,0,0.25);
+  }
+  .collect-btn:hover { filter: brightness(1.08); }
+  .collect-btn[disabled] {
+    background: #2a2f4a; color: #7a7e94; cursor: not-allowed;
+    box-shadow: none; border-color: #1a1e30;
+  }
+  .in-passport {
+    text-align: center;
+    padding: 14px;
+    background: rgba(76,151,98,0.15);
+    border: 1px solid rgba(76,151,98,0.5);
+    border-radius: 4px;
+    font-family: 'Cinzel', serif;
+    letter-spacing: 0.15em;
+    color: #a5e0b7;
+    font-size: 13px;
+  }
+  .in-passport small {
+    display: block;
+    margin-top: 6px;
+    font-family: 'EB Garamond', serif;
+    font-style: italic;
+    letter-spacing: 0;
+    color: var(--text-dim);
+    font-size: 12px;
+    text-transform: none;
+  }
+  .close-x {
+    position: absolute;
+    top: 12px; right: 16px;
+    background: none;
+    border: none;
+    color: var(--gold);
+    font-size: 22px;
+    cursor: pointer;
+    font-family: 'Cinzel', serif;
+  }
+
+  /* Create form panel */
+  .panel {
+    background: linear-gradient(180deg, #131938, #0b1128);
+    border: 1px solid rgba(212,175,55,0.3);
+    border-radius: 6px;
+    padding: 24px;
+    display: grid;
+    grid-template-columns: 1fr 260px;
+    gap: 26px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+  @media (max-width: 780px) {
+    .panel { grid-template-columns: 1fr; }
+  }
+  .panel h3 {
+    font-family: 'Cinzel', serif;
+    letter-spacing: 0.16em;
+    color: var(--gold);
+    margin: 0 0 4px;
+    font-size: 15px;
+    text-transform: uppercase;
+  }
+  .panel p.hint {
+    font-family: 'EB Garamond', serif;
+    font-style: italic;
+    color: var(--text-dim);
+    font-size: 14px;
+    margin: 0 0 18px;
+  }
+  .field {
+    display: block;
+    margin-bottom: 12px;
+  }
+  .field label {
+    display: block;
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    color: var(--gold);
+    margin-bottom: 5px;
+    text-transform: uppercase;
+  }
+  .field input, .field textarea {
+    width: 100%;
+    background: #0a0f22;
+    border: 1px solid rgba(212,175,55,0.22);
+    color: var(--text);
+    padding: 10px 12px;
+    border-radius: 4px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+  }
+  .field textarea { resize: vertical; min-height: 70px; font-family: 'EB Garamond', serif; }
+  .field input:focus, .field textarea:focus { outline: none; border-color: var(--gold); }
+  .form-msg {
+    font-size: 12px;
+    font-family: 'EB Garamond', serif;
+    font-style: italic;
+    color: var(--tier-mythic);
+    margin: 6px 0 12px;
+    min-height: 16px;
+  }
+  .form-msg.ok { color: #a5e0b7; }
+
+  .preview-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .preview-column .label {
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+    text-transform: uppercase;
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    opacity: 0;
+    background:
+      linear-gradient(180deg, #f4e9c9, #d9c891);
+    color: var(--ink);
+    padding: 12px 24px 12px 18px;
+    border: 1px solid var(--parchment-shadow);
+    border-radius: 4px;
+    font-family: 'EB Garamond', serif;
+    font-style: italic;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    z-index: 200;
+    transition: opacity 0.25s, transform 0.25s;
+    max-width: 90%;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast::before {
+    content: '❦';
+    color: var(--gold-dim);
+    margin-right: 8px;
+    font-style: normal;
+  }
+  .toast.err { background: linear-gradient(180deg, #ecc0c0, #d78a8a); }
+
+  /* Empty state */
+  .empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-dim);
+    font-family: 'EB Garamond', serif;
+    font-style: italic;
+  }
+  .empty svg { width: 100px; height: 100px; opacity: 0.7; margin-bottom: 16px; }
+  .empty code {
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+    font-style: normal;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .network-warn {
+    background: rgba(216,67,67,0.15);
+    border: 1px solid rgba(216,67,67,0.5);
+    color: #f7c2c2;
+    padding: 10px 16px;
+    border-radius: 4px;
+    text-align: center;
+    font-family: 'EB Garamond', serif;
+    font-style: italic;
+    margin: 12px auto;
+    max-width: 900px;
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="wordmark">STAMPPASS</div>
+  <button id="connectBtn" class="btn-connect">CONNECT WALLET</button>
+</div>
+
+<div id="netWarn" class="network-warn" style="display:none;"></div>
+
+<section class="hero">
+  <h1>Every place. Every moment. A card.</h1>
+  <p class="sub">Collect the world into a passport of illuminated souvenirs.</p>
+</section>
+
+<section class="stats">
+  <div class="shield">
+    <svg viewBox="0 0 100 115" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="sh1" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#f7ecc9"/><stop offset="1" stop-color="#c9b57a"/>
+        </linearGradient>
+      </defs>
+      <path d="M50 2 L96 14 L96 60 Q96 92 50 112 Q4 92 4 60 L4 14 Z" fill="url(#sh1)" stroke="#8a7028" stroke-width="2"/>
+      <path d="M50 8 L90 18 L90 60 Q90 88 50 106 Q10 88 10 60 L10 18 Z" fill="none" stroke="#d4af37" stroke-width="0.6" opacity="0.7"/>
+    </svg>
+    <div class="shield-inner">
+      <div class="shield-label">Locations</div>
+      <div class="shield-value" id="statLocations">—</div>
+      <div class="shield-sub">minted</div>
+    </div>
+  </div>
+  <div class="shield">
+    <svg viewBox="0 0 100 115" preserveAspectRatio="none">
+      <path d="M50 2 L96 14 L96 60 Q96 92 50 112 Q4 92 4 60 L4 14 Z" fill="url(#sh1)" stroke="#8a7028" stroke-width="2"/>
+      <path d="M50 8 L90 18 L90 60 Q90 88 50 106 Q10 88 10 60 L10 18 Z" fill="none" stroke="#d4af37" stroke-width="0.6" opacity="0.7"/>
+    </svg>
+    <div class="shield-inner">
+      <div class="shield-label">Total Stamps</div>
+      <div class="shield-value" id="statStamps">—</div>
+      <div class="shield-sub">collected</div>
+    </div>
+  </div>
+  <div class="shield">
+    <svg viewBox="0 0 100 115" preserveAspectRatio="none">
+      <path d="M50 2 L96 14 L96 60 Q96 92 50 112 Q4 92 4 60 L4 14 Z" fill="url(#sh1)" stroke="#8a7028" stroke-width="2"/>
+      <path d="M50 8 L90 18 L90 60 Q90 88 50 106 Q10 88 10 60 L10 18 Z" fill="none" stroke="#d4af37" stroke-width="0.6" opacity="0.7"/>
+    </svg>
+    <div class="shield-inner">
+      <div class="shield-label">Your Passport</div>
+      <div class="shield-value" id="statMine">—</div>
+      <div class="shield-sub">cards held</div>
+    </div>
+  </div>
+  <div class="shield">
+    <svg viewBox="0 0 100 115" preserveAspectRatio="none">
+      <path d="M50 2 L96 14 L96 60 Q96 92 50 112 Q4 92 4 60 L4 14 Z" fill="url(#sh1)" stroke="#8a7028" stroke-width="2"/>
+      <path d="M50 8 L90 18 L90 60 Q90 88 50 106 Q10 88 10 60 L10 18 Z" fill="none" stroke="#d4af37" stroke-width="0.6" opacity="0.7"/>
+    </svg>
+    <div class="shield-inner">
+      <div class="shield-label">Rarest</div>
+      <div class="shield-value" id="statRarest" style="font-size:16px;">—</div>
+      <div class="shield-sub">in your book</div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-title">Location Feed</div>
+  <div class="section-rule"></div>
+  <div class="filter-row">
+    <div class="segmented">
+      <button class="seg-btn active" data-scope="all">ALL</button>
+      <button class="seg-btn" data-scope="mine">MY PASSPORT</button>
+    </div>
+    <select id="rarityFilter" class="ornate">
+      <option value="">ALL RARITIES</option>
+      <option value="MYTHIC">MYTHIC</option>
+      <option value="LEGENDARY">LEGENDARY</option>
+      <option value="EPIC">EPIC</option>
+      <option value="RARE">RARE</option>
+      <option value="UNCOMMON">UNCOMMON</option>
+      <option value="COMMON">COMMON</option>
+    </select>
+  </div>
+  <div id="feedGrid" class="card-grid"></div>
+</section>
+
+<section class="section">
+  <div class="section-title">Forge a Location</div>
+  <div class="section-rule"></div>
+  <div class="panel">
+    <div>
+      <h3>Inscribe a new card</h3>
+      <p class="hint">Every location becomes a mythic collectible until the crowd finds it.</p>
+      <div class="field">
+        <label>Slug · 3–32 chars, a–z 0–9 -</label>
+        <input id="fSlug" type="text" placeholder="paris-cafe-1789" maxlength="32">
+      </div>
+      <div class="field">
+        <label>Name · up to 64</label>
+        <input id="fName" type="text" placeholder="Café des Étoiles" maxlength="64">
+      </div>
+      <div class="field">
+        <label>Description · up to 256</label>
+        <textarea id="fDesc" placeholder="A dim room where the astronomers argued." maxlength="256"></textarea>
+      </div>
+      <div class="field">
+        <label>Icon URL · optional</label>
+        <input id="fIcon" type="text" placeholder="https://…" maxlength="256">
+      </div>
+      <div id="formMsg" class="form-msg"></div>
+      <button id="createBtn" class="collect-btn">MINT LOCATION · 0.001 BOT</button>
+    </div>
+    <div class="preview-column">
+      <div class="label">Live Preview</div>
+      <div id="previewSlot"></div>
+    </div>
+  </div>
+</section>
+
+<div id="modal" class="modal-veil">
+  <div class="modal-body" style="position:relative;">
+    <button class="close-x" onclick="closeModal()">✕</button>
+    <div id="modalCard"></div>
+    <div class="modal-meta">
+      <h3 id="mTitle">—</h3>
+      <div class="slug" id="mSlug"></div>
+      <div class="desc" id="mDesc"></div>
+      <div class="modal-facts">
+        <div><b>Rarity</b><span id="mRarity">—</span></div>
+        <div><b>Collected By</b><span id="mCount">—</span></div>
+        <div><b>Creator</b><span id="mCreator" style="font-size:11px;">—</span></div>
+        <div><b>Minted</b><span id="mMinted">—</span></div>
+      </div>
+      <div id="mAction"></div>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+  // ============================================================
+  //  CONFIG
+  // ============================================================
+  const CONTRACT_ADDRESS = "0x0000000000000000000000000000000000000000";
+
+  const TESTNET = {
+    chainId: "0x3C8", // 968
+    chainName: "BOT Chain Testnet",
+    nativeCurrency: { name: "BOT", symbol: "BOT", decimals: 18 },
+    rpcUrls: ["https://rpc.bohr.life"],
+    blockExplorerUrls: []
+  };
+  const MAINNET_ID = "0x2A5"; // 677
+
+  const ABI = [
+    "function createFee() view returns (uint256)",
+    "function stampFee() view returns (uint256)",
+    "function locationCount() view returns (uint256)",
+    "function createLocation(string,string,string,string) payable returns (uint256)",
+    "function collectStamp(uint256) payable",
+    "function getLocation(uint256) view returns (address,string,string,string,string,uint256,uint256)",
+    "function getLocationBySlug(string) view returns (uint256)",
+    "function hasStamp(uint256,address) view returns (bool)",
+    "function getStamperTimestamp(uint256,address) view returns (uint256)",
+    "function getStamps(address) view returns (uint256[])",
+    "function stampCount(address) view returns (uint256)",
+    "function getRecent(uint256,uint256) view returns (uint256[])",
+    "event LocationCreated(uint256 indexed locationId, address indexed creator, string slug, string name)",
+    "event StampCollected(uint256 indexed locationId, address indexed user, uint256 stamperCountAfter, uint256 creatorPaid, uint256 platformPaid)"
+  ];
+
+  // ============================================================
+  //  STATE
+  // ============================================================
+  let provider, signer, contract, readContract, account = null;
+  let createFee = 0n, stampFee = 0n;
+  let locations = []; // {id, creator, slug, name, description, iconUrl, createdAt, stamperCount, mine, mineTs}
+  let scope = "all", rarityFilter = "";
+  let selectedId = null;
+
+  // ============================================================
+  //  RARITY
+  // ============================================================
+  function tierOf(n) {
+    if (n <= 1) return "MYTHIC";
+    if (n <= 5) return "LEGENDARY";
+    if (n <= 25) return "EPIC";
+    if (n <= 100) return "RARE";
+    if (n <= 500) return "UNCOMMON";
+    return "COMMON";
+  }
+  const TIER_ORDER = ["MYTHIC","LEGENDARY","EPIC","RARE","UNCOMMON","COMMON"];
+  function tierClass(t) { return "r-" + t.toLowerCase(); }
+  function tierIsFoil(t) { return ["EPIC","LEGENDARY","MYTHIC"].includes(t); }
+
+  // ============================================================
+  //  UTIL
+  // ============================================================
+  const $ = (id) => document.getElementById(id);
+  function short(addr) { return addr ? addr.slice(0,6) + "…" + addr.slice(-4) : ""; }
+  function toBOT(w) { try { return ethers.formatEther(w); } catch { return "?"; } }
+  function esc(s) {
+    return String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" })[c]);
+  }
+  function fmtDate(ts) {
+    if (!ts) return "—";
+    try { return new Date(Number(ts) * 1000).toLocaleString(); } catch { return "—"; }
+  }
+
+  let toastTimer;
+  function toast(msg, isErr) {
+    const el = $("toast");
+    el.textContent = msg;
+    el.className = "toast show" + (isErr ? " err" : "");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { el.className = "toast" + (isErr ? " err" : ""); }, 4500);
+  }
+
+  // ============================================================
+  //  Placeholder illustrated icons (variety by hash)
+  // ============================================================
+  const ICON_SVGS = [
+    // Scroll
+    `<svg viewBox="0 0 64 64" fill="none"><path d="M12 12 L52 12 Q56 12 56 16 Q56 20 52 20 L16 20 L16 48 Q16 52 12 52 Q8 52 8 48 L8 16 Q8 12 12 12 Z" fill="#8a7028" stroke="#2c1e07" stroke-width="1.5"/><path d="M16 20 L48 20 L48 48 Q48 52 44 52 L16 52" fill="#f4e9c9" stroke="#2c1e07" stroke-width="1.5"/><path d="M22 30 L44 30 M22 36 L44 36 M22 42 L38 42" stroke="#8a7028" stroke-width="1.2"/></svg>`,
+    // Coin
+    `<svg viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="24" fill="#d4af37" stroke="#2c1e07" stroke-width="2"/><circle cx="32" cy="32" r="18" fill="none" stroke="#8a7028" stroke-width="1.5"/><text x="32" y="40" font-family="Cinzel,serif" font-size="20" text-anchor="middle" font-weight="900" fill="#2c1e07">S</text></svg>`,
+    // Orb
+    `<svg viewBox="0 0 64 64" fill="none"><defs><radialGradient id="og" cx="0.3" cy="0.3"><stop offset="0" stop-color="#e0f0ff"/><stop offset="0.7" stop-color="#4a7dd6"/><stop offset="1" stop-color="#1a2050"/></radialGradient></defs><circle cx="32" cy="32" r="22" fill="url(#og)" stroke="#2c1e07" stroke-width="2"/><ellipse cx="24" cy="22" rx="6" ry="3" fill="rgba(255,255,255,0.5)"/></svg>`,
+    // Tower
+    `<svg viewBox="0 0 64 64" fill="none"><path d="M22 12 L42 12 L44 20 L20 20 Z" fill="#8a7028" stroke="#2c1e07" stroke-width="1.5"/><rect x="22" y="20" width="20" height="34" fill="#c9b57a" stroke="#2c1e07" stroke-width="1.5"/><rect x="28" y="30" width="8" height="12" fill="#2c1e07"/><path d="M32 4 L34 12 L30 12 Z" fill="#d4af37" stroke="#2c1e07" stroke-width="1"/></svg>`,
+    // Sword
+    `<svg viewBox="0 0 64 64" fill="none"><path d="M32 6 L36 42 L28 42 Z" fill="#c9d0e0" stroke="#2c1e07" stroke-width="1.5"/><rect x="22" y="42" width="20" height="4" fill="#d4af37" stroke="#2c1e07" stroke-width="1.5"/><rect x="30" y="46" width="4" height="10" fill="#8a4028" stroke="#2c1e07" stroke-width="1.5"/><circle cx="32" cy="58" r="3" fill="#d4af37" stroke="#2c1e07" stroke-width="1"/></svg>`,
+    // Chalice
+    `<svg viewBox="0 0 64 64" fill="none"><path d="M18 14 L46 14 L44 30 Q44 40 32 42 Q20 40 20 30 Z" fill="#d4af37" stroke="#2c1e07" stroke-width="1.5"/><rect x="30" y="42" width="4" height="10" fill="#d4af37" stroke="#2c1e07" stroke-width="1.5"/><rect x="22" y="52" width="20" height="4" fill="#d4af37" stroke="#2c1e07" stroke-width="1.5"/><path d="M22 18 L42 18" stroke="#8a4028" stroke-width="1"/></svg>`,
+    // Star / compass
+    `<svg viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="24" fill="#f4e9c9" stroke="#2c1e07" stroke-width="2"/><path d="M32 12 L36 30 L54 32 L36 34 L32 52 L28 34 L10 32 L28 30 Z" fill="#d4af37" stroke="#2c1e07" stroke-width="1.2"/></svg>`,
+    // Key
+    `<svg viewBox="0 0 64 64" fill="none"><circle cx="20" cy="32" r="10" fill="none" stroke="#d4af37" stroke-width="3"/><path d="M30 32 L54 32 L54 40 L48 40 L48 36 L44 36 L44 40 L40 40 L40 36 L30 36 Z" fill="#d4af37" stroke="#2c1e07" stroke-width="1.5"/><circle cx="20" cy="32" r="4" fill="#2c1e07"/></svg>`
+  ];
+  function pickIcon(seed) {
+    let h = 0;
+    for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+    return ICON_SVGS[h % ICON_SVGS.length];
+  }
+
+  const CORNER_SVG = `<svg class="corner tl" viewBox="0 0 12 12"><path d="M0 0 L6 0 Q0 0 0 6 Z" fill="currentColor"/><circle cx="3" cy="3" r="1.2" fill="#f0d67a"/></svg>`;
+  function corners() {
+    return CORNER_SVG
+      + CORNER_SVG.replace('tl','tr')
+      + CORNER_SVG.replace('tl','bl')
+      + CORNER_SVG.replace('tl','br');
+  }
+
+  // ============================================================
+  //  Render one card
+  // ============================================================
+  function renderCard(loc, opts = {}) {
+    const tier = tierOf(Number(loc.stamperCount || 0));
+    const cls = tierClass(tier);
+    const foil = tierIsFoil(tier) ? " foil" : "";
+    const iconHtml = loc.iconUrl
+      ? `<img src="${esc(loc.iconUrl)}" onerror="this.replaceWith(Object.assign(document.createElement('div'),{innerHTML:this.dataset.fallback}).firstChild)" data-fallback='${pickIcon(loc.slug || "x").replace(/'/g,"&#39;")}' alt="">`
+      : pickIcon(loc.slug || "x");
+    const owned = opts.owned ? `<div class="owned-badge">IN PASSPORT</div>` : "";
+    return `
+      <div class="tcg-card ${cls}${foil}" data-id="${loc.id ?? ""}">
+        ${corners()}
+        ${owned}
+        <div class="card-inner">
+          <div class="card-title">${esc(loc.name || "—")}</div>
+          <div class="card-portrait">${iconHtml}</div>
+          <div class="card-desc">${esc(loc.description || "")}</div>
+          <div class="card-footer">
+            <div class="card-rarity">${tier}</div>
+            <div class="card-count">${loc.stamperCount ?? 0} held</div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  // ============================================================
+  //  Wallet + network
+  // ============================================================
+  async function connect() {
+    if (!window.ethereum) { toast("MetaMask not detected", true); return; }
+    try {
+      const accs = await window.ethereum.request({ method: "eth_requestAccounts" });
+      account = accs[0];
+      const chainId = await window.ethereum.request({ method: "eth_chainId" });
+      if (chainId === MAINNET_ID) {
+        $("netWarn").style.display = "block";
+        $("netWarn").textContent = "Mainnet detected — StampPass is running in testnet-only mode. Please switch to BOT Chain Testnet.";
+        return;
+      }
+      if (chainId !== TESTNET.chainId) {
+        try {
+          await window.ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: TESTNET.chainId }] });
+        } catch (e) {
+          if (e.code === 4902) {
+            await window.ethereum.request({ method: "wallet_addEthereumChain", params: [TESTNET] });
+          } else { throw e; }
+        }
+      }
+      provider = new ethers.BrowserProvider(window.ethereum);
+      signer = await provider.getSigner();
+      contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+      $("connectBtn").outerHTML = `<div class="wallet-chip">${short(account)}</div>`;
+      $("netWarn").style.display = "none";
+      window.ethereum.on("accountsChanged", () => location.reload());
+      window.ethereum.on("chainChanged", () => location.reload());
+      await loadAll();
+    } catch (e) {
+      console.error(e);
+      toast(e.shortMessage || e.message || "connect failed", true);
+    }
+  }
+
+  function readOnly() {
+    if (!readContract) {
+      const rp = new ethers.JsonRpcProvider(TESTNET.rpcUrls[0]);
+      readContract = new ethers.Contract(CONTRACT_ADDRESS, ABI, rp);
+    }
+    return readContract;
+  }
+
+  // ============================================================
+  //  Data loading
+  // ============================================================
+  async function loadAll() {
+    try {
+      const c = contract || readOnly();
+      if (CONTRACT_ADDRESS === "0x0000000000000000000000000000000000000000") {
+        $("feedGrid").innerHTML = `<div class="empty" style="grid-column:1/-1;">
+          <svg viewBox="0 0 100 100"><rect x="20" y="30" width="60" height="45" fill="#3a2a12" stroke="#8a7028" stroke-width="2" rx="3"/><rect x="24" y="34" width="52" height="37" fill="#5a4419" stroke="#d4af37" stroke-width="1"/><path d="M50 34 L50 71" stroke="#8a7028" stroke-width="1"/></svg>
+          <div>// contract not yet configured</div>
+          <code>update CONTRACT_ADDRESS in frontend/index.html</code>
+        </div>`;
+        return;
+      }
+      [createFee, stampFee] = await Promise.all([c.createFee(), c.stampFee()]);
+      $("createBtn").textContent = `MINT LOCATION · ${toBOT(createFee)} BOT`;
+      const count = Number(await c.locationCount());
+      $("statLocations").textContent = count;
+      if (count === 0) {
+        renderFeed();
+        $("statStamps").textContent = "0";
+        $("statMine").textContent = account ? "0" : "—";
+        $("statRarest").textContent = "—";
+        return;
+      }
+      const ids = await c.getRecent(0, Math.min(count, 60));
+      const infos = await Promise.all(ids.map(id => c.getLocation(id)));
+      let mineSet = new Set();
+      let mineTsMap = {};
+      if (account) {
+        const mine = await c.getStamps(account);
+        for (const mid of mine) mineSet.add(Number(mid));
+        await Promise.all(mine.map(async mid => {
+          mineTsMap[Number(mid)] = Number(await c.getStamperTimestamp(mid, account));
+        }));
+      }
+      locations = ids.map((id, i) => {
+        const [creator, slug, name, description, iconUrl, createdAt, stamperCount] = infos[i];
+        const idn = Number(id);
+        return {
+          id: idn, creator, slug, name, description, iconUrl,
+          createdAt: Number(createdAt), stamperCount: Number(stamperCount),
+          mine: mineSet.has(idn), mineTs: mineTsMap[idn] || 0
+        };
+      });
+      const totalStamps = locations.reduce((a, l) => a + l.stamperCount, 0);
+      $("statStamps").textContent = totalStamps;
+      $("statMine").textContent = account ? mineSet.size : "—";
+      let rarest = "—";
+      if (account) {
+        const mineTiers = locations.filter(l => l.mine).map(l => tierOf(l.stamperCount));
+        for (const t of TIER_ORDER) if (mineTiers.includes(t)) { rarest = t; break; }
+      }
+      $("statRarest").textContent = rarest;
+      renderFeed();
+    } catch (e) {
+      console.error(e);
+      toast(e.shortMessage || e.message || "load failed", true);
+    }
+  }
+
+  function renderFeed() {
+    const grid = $("feedGrid");
+    let items = locations.slice();
+    if (scope === "mine") items = items.filter(l => l.mine);
+    if (rarityFilter) items = items.filter(l => tierOf(l.stamperCount) === rarityFilter);
+    if (!items.length) {
+      grid.innerHTML = `<div class="empty" style="grid-column:1/-1;">
+        <svg viewBox="0 0 100 100"><rect x="20" y="20" width="60" height="60" fill="#3a2a12" stroke="#8a7028" stroke-width="2" rx="4"/><rect x="24" y="24" width="52" height="52" fill="#5a4419" stroke="#d4af37" stroke-width="1"/><path d="M50 24 L50 76" stroke="#8a7028" stroke-width="1"/></svg>
+        <div>// no cards yet</div>
+        <code>${scope === "mine" ? "your passport is empty" : "be the first to inscribe a location"}</code>
+      </div>`;
+      return;
+    }
+    grid.innerHTML = items.map(l => renderCard(l, { owned: l.mine })).join("");
+    grid.querySelectorAll(".tcg-card").forEach(el => {
+      el.addEventListener("click", () => openModal(Number(el.dataset.id)));
+    });
+  }
+
+  // ============================================================
+  //  Modal
+  // ============================================================
+  function openModal(id) {
+    const loc = locations.find(l => l.id === id);
+    if (!loc) return;
+    selectedId = id;
+    const tier = tierOf(loc.stamperCount);
+    $("modalCard").innerHTML = renderCard(loc, { owned: loc.mine });
+    $("mTitle").textContent = loc.name;
+    $("mSlug").textContent = "#" + loc.slug;
+    $("mDesc").textContent = loc.description || "—";
+    $("mRarity").textContent = tier;
+    $("mCount").textContent = loc.stamperCount;
+    $("mCreator").textContent = short(loc.creator);
+    $("mMinted").textContent = fmtDate(loc.createdAt);
+    if (loc.mine) {
+      $("mAction").innerHTML = `<div class="in-passport">IN YOUR PASSPORT ✓<small>Collected ${fmtDate(loc.mineTs)}</small></div>`;
+    } else if (!account) {
+      $("mAction").innerHTML = `<button class="collect-btn" disabled>CONNECT WALLET TO COLLECT</button>`;
+    } else {
+      $("mAction").innerHTML = `<button class="collect-btn" onclick="collect(${id})">COLLECT STAMP · ${toBOT(stampFee)} BOT</button>`;
+    }
+    $("modal").classList.add("open");
+  }
+  function closeModal() { $("modal").classList.remove("open"); }
+  $("modal").addEventListener("click", (e) => { if (e.target.id === "modal") closeModal(); });
+
+  // ============================================================
+  //  Collect stamp
+  // ============================================================
+  async function collect(id) {
+    if (!contract) { toast("connect wallet first", true); return; }
+    try {
+      toast("Sending stamp…");
+      const tx = await contract.collectStamp(id, { value: stampFee });
+      await tx.wait();
+      toast("Stamp collected — added to your passport.");
+      closeModal();
+      await loadAll();
+    } catch (e) {
+      console.error(e);
+      toast(e.shortMessage || e.reason || e.message || "collect failed", true);
+    }
+  }
+
+  // ============================================================
+  //  Create location
+  // ============================================================
+  function validateSlug(s) {
+    if (s.length < 3 || s.length > 32) return "slug must be 3–32 chars";
+    if (!/^[a-z0-9-]+$/.test(s)) return "slug: lowercase, digits, hyphens only";
+    return "";
+  }
+
+  function updatePreview() {
+    const slug = $("fSlug").value.trim();
+    const name = $("fName").value.trim() || "Card Name";
+    const desc = $("fDesc").value.trim() || "A description will appear here.";
+    const icon = $("fIcon").value.trim();
+    const previewLoc = {
+      slug: slug || "preview",
+      name,
+      description: desc,
+      iconUrl: icon,
+      stamperCount: 1
+    };
+    $("previewSlot").innerHTML = renderCard(previewLoc);
+  }
+  ["fSlug","fName","fDesc","fIcon"].forEach(id => $(id).addEventListener("input", updatePreview));
+
+  async function createLocation() {
+    if (!contract) { toast("connect wallet first", true); return; }
+    const slug = $("fSlug").value.trim().toLowerCase();
+    const name = $("fName").value.trim();
+    const desc = $("fDesc").value.trim();
+    const icon = $("fIcon").value.trim();
+    const msg = $("formMsg");
+    msg.className = "form-msg";
+    const sErr = validateSlug(slug);
+    if (sErr) { msg.textContent = sErr; return; }
+    if (!name || name.length > 64) { msg.textContent = "name 1–64 chars"; return; }
+    if (desc.length > 256) { msg.textContent = "desc up to 256"; return; }
+    if (icon.length > 256) { msg.textContent = "icon URL too long"; return; }
+    try {
+      // Optional pre-check
+      const dup = await contract.getLocationBySlug(slug);
+      if (Number(dup) !== 0) { msg.textContent = "slug already claimed"; return; }
+      msg.className = "form-msg ok";
+      msg.textContent = "sending…";
+      const tx = await contract.createLocation(slug, name, desc, icon, { value: createFee });
+      await tx.wait();
+      toast("Location inscribed.");
+      msg.textContent = "";
+      $("fSlug").value = ""; $("fName").value = ""; $("fDesc").value = ""; $("fIcon").value = "";
+      updatePreview();
+      await loadAll();
+    } catch (e) {
+      console.error(e);
+      msg.className = "form-msg";
+      msg.textContent = e.shortMessage || e.reason || e.message || "create failed";
+    }
+  }
+
+  // ============================================================
+  //  Wire filters
+  // ============================================================
+  document.querySelectorAll(".seg-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".seg-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      scope = btn.dataset.scope;
+      renderFeed();
+    });
+  });
+  $("rarityFilter").addEventListener("change", (e) => {
+    rarityFilter = e.target.value;
+    renderFeed();
+  });
+  $("connectBtn").addEventListener("click", connect);
+  $("createBtn").addEventListener("click", createLocation);
+
+  // Init preview + read-only feed
+  updatePreview();
+  loadAll();
+</script>
+
+</body>
+</html>
