@@ -686,6 +686,67 @@
     margin: 12px auto;
     max-width: 900px;
   }
+
+  /* ===== BOT Chain ecosystem footer (KPI 5) — gilt colophon ===== */
+  .bc-foot {
+    margin-top: 64px; padding: 44px 20px 34px;
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(212,175,55,0.10) 0%, transparent 62%),
+      linear-gradient(180deg, var(--midnight-1) 0%, var(--midnight-0) 100%);
+    border-top: 1px solid var(--gold-dim);
+    position: relative;
+  }
+  .bc-foot::before {
+    content: ''; position: absolute; top: 5px; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(212,175,55,0.45), transparent);
+  }
+  .bc-foot-inner { max-width: 760px; margin: 0 auto; text-align: center; }
+  .bc-foot .bc-label {
+    font-family: 'Cinzel', serif; font-size: 10px; font-weight: 700;
+    letter-spacing: 0.34em; text-transform: uppercase; color: var(--gold);
+    opacity: .85; margin-bottom: 20px;
+  }
+  .bc-foot .bc-seal {
+    width: 72px; height: 72px; margin: 0 auto 16px; border-radius: 50%;
+    background: radial-gradient(circle at 36% 30%, var(--midnight-3), var(--midnight-1) 70%);
+    border: 1px solid var(--gold-dim);
+    box-shadow: 0 0 0 5px rgba(212,175,55,0.08), 0 8px 22px rgba(0,0,0,0.55);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .bc-foot .bc-seal svg { width: 23px; height: 36px; display: block; }
+  .bc-foot .bc-word {
+    font-family: 'Cinzel', serif; font-size: 25px; font-weight: 700;
+    color: var(--parchment); letter-spacing: 0.06em; margin-bottom: 6px;
+  }
+  .bc-foot .bc-word em { font-style: normal; color: var(--gold); }
+  .bc-foot .bc-motto {
+    font-family: 'EB Garamond', serif; font-style: italic; font-size: 14px;
+    color: var(--text-dim); margin-bottom: 22px;
+  }
+  .bc-foot .bc-rule {
+    width: 180px; height: 1px; margin: 0 auto 22px;
+    background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+    position: relative;
+  }
+  .bc-foot .bc-rule::after {
+    content: '❖'; position: absolute; top: -9px; left: 50%; transform: translateX(-50%);
+    font-size: 10px; color: var(--gold); background: var(--midnight-0); padding: 0 8px;
+  }
+  .bc-foot .bc-links { display: flex; justify-content: center; gap: 30px; flex-wrap: wrap; margin-bottom: 24px; }
+  .bc-foot .bc-links a {
+    font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 500;
+    color: var(--text-dim); text-decoration: none;
+    display: inline-flex; align-items: center; gap: 7px;
+    padding-bottom: 3px; border-bottom: 1px solid transparent;
+    transition: color .2s, border-color .2s;
+  }
+  .bc-foot .bc-links a:hover { color: var(--gold-2); border-bottom-color: var(--gold-dim); }
+  .bc-foot .bc-links a svg { width: 14px; height: 14px; opacity: .7; }
+  .bc-foot .bc-copy {
+    font-family: 'Inter', sans-serif; font-size: 11px; color: var(--text-dim);
+    opacity: .6; letter-spacing: 0.06em;
+  }
+  .bc-foot .bc-copy b { color: var(--parchment-dim); font-weight: 600; }
 </style>
 </head>
 <body>
@@ -833,16 +894,26 @@
   // ============================================================
   //  CONFIG
   // ============================================================
-  const CONTRACT_ADDRESS = "0x0000000000000000000000000000000000000000";
+  const CONTRACT_ADDRESS = "0x1378e741f1D02382Da3EbB4C601B94aeB07E0fD0"; // BOT Chain mainnet 677
 
+  const MAINNET = {
+    chainId: "0x2A5", // 677
+    chainName: "BOT Chain",
+    nativeCurrency: { name: "BOT", symbol: "BOT", decimals: 18 },
+    rpcUrls: ["https://rpc.botchain.ai"],
+    blockExplorerUrls: ["https://scan.botchain.ai"]
+  };
   const TESTNET = {
     chainId: "0x3C8", // 968
     chainName: "BOT Chain Testnet",
     nativeCurrency: { name: "BOT", symbol: "BOT", decimals: 18 },
     rpcUrls: ["https://rpc.bohr.life"],
-    blockExplorerUrls: []
+    blockExplorerUrls: ["https://scan.bohr.life"]
   };
-  const MAINNET_ID = "0x2A5"; // 677
+
+  // Active network. StampPass is live on mainnet; swap to TESTNET to run against 968.
+  const NETWORK = MAINNET;
+  const TESTNET_ID = TESTNET.chainId;
 
   const ABI = [
     "function createFee() view returns (uint256)",
@@ -979,17 +1050,16 @@
       const accs = await window.ethereum.request({ method: "eth_requestAccounts" });
       account = accs[0];
       const chainId = await window.ethereum.request({ method: "eth_chainId" });
-      if (chainId === MAINNET_ID) {
+      if (chainId === TESTNET_ID) {
         $("netWarn").style.display = "block";
-        $("netWarn").textContent = "Mainnet detected — StampPass is running in testnet-only mode. Please switch to BOT Chain Testnet.";
-        return;
+        $("netWarn").textContent = "Testnet detected — StampPass is live on BOT Chain Mainnet. Switching you to chain 677…";
       }
-      if (chainId !== TESTNET.chainId) {
+      if (chainId !== NETWORK.chainId) {
         try {
-          await window.ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: TESTNET.chainId }] });
+          await window.ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: NETWORK.chainId }] });
         } catch (e) {
           if (e.code === 4902) {
-            await window.ethereum.request({ method: "wallet_addEthereumChain", params: [TESTNET] });
+            await window.ethereum.request({ method: "wallet_addEthereumChain", params: [NETWORK] });
           } else { throw e; }
         }
       }
@@ -1009,7 +1079,7 @@
 
   function readOnly() {
     if (!readContract) {
-      const rp = new ethers.JsonRpcProvider(TESTNET.rpcUrls[0]);
+      const rp = new ethers.JsonRpcProvider(NETWORK.rpcUrls[0]);
       readContract = new ethers.Contract(CONTRACT_ADDRESS, ABI, rp);
     }
     return readContract;
@@ -1221,6 +1291,32 @@
   updatePreview();
   loadAll();
 </script>
+
+<!-- ===== BOT Chain ecosystem footer (KPI 5) ===== -->
+<footer class="bc-foot">
+  <div class="bc-foot-inner">
+    <div class="bc-label">Part of the Ecosystem</div>
+    <div class="bc-seal" aria-hidden="true">
+      <svg viewBox="0 0 63.63 100" xmlns="http://www.w3.org/2000/svg">
+        <path fill="#00A67E" d="M31.67 99.95 L0 82.48 L0.11 63.74 L47.01 90.60 L47.01 73.19 L15.98 55.32 L15.95 36.49 L46.92 53.57 L47.39 36.82 L15.96 17.81 L16.26 0 L63.06 27.02 L62.82 46.20 L47.86 54.67 L62.85 63.00 L63.62 81.42 Z"/>
+      </svg>
+    </div>
+    <div class="bc-word"><em>BOT</em> Chain</div>
+    <div class="bc-motto">Stamped, sealed, on chain</div>
+    <div class="bc-rule"></div>
+    <div class="bc-links">
+      <a href="https://botchain.ai" target="_blank" rel="noopener noreferrer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        botchain.ai
+      </a>
+      <a href="https://scan.botchain.ai" target="_blank" rel="noopener noreferrer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        Explorer
+      </a>
+    </div>
+    <div class="bc-copy">&copy; 2026 <b>BOT Chain</b> &middot; Mainnet &middot; Chain ID <b>677</b></div>
+  </div>
+</footer>
 
 </body>
 </html>
